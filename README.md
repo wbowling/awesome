@@ -1,0 +1,4 @@
+awesome
+=======
+
+configuration for awesome
