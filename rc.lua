@@ -9,6 +9,7 @@ require("naughty")
 require("vicious")
 
 
+
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
@@ -34,12 +35,19 @@ do
 end
 -- }}}
 
+
+
+
 -- {{{ Variable definitions
 -- Themes define colours, icons, and wallpapers
 beautiful.init("/home/will/.config/awesome/themes/mine/theme.lua")
 
+require ("icons")
+local cw = require ("cairowidgets")
+local pop = require ("popup")
+
 -- This is used later as the default terminal and editor to run.
-terminal = "xterm"
+terminal = "urxvt"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -48,32 +56,32 @@ editor_cmd = terminal .. " -e " .. editor
 -- If you do not like this or do not have such a key,
 -- I suggest you to remap Mod4 to another key using xmodmap or other tools.
 -- However, you can use another modifier like Mod1, but it may interact with others.
-modkey = "Mod1"
+modkey = "Mod4"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 layouts =
 {
     awful.layout.suit.floating, 	--1
     awful.layout.suit.tile,		--2
-    awful.layout.suit.tile.left,	--3
-    awful.layout.suit.tile.bottom,	--4
-    awful.layout.suit.tile.top,		--5
-    awful.layout.suit.fair,		--6
-    awful.layout.suit.fair.horizontal,	--7
-    awful.layout.suit.spiral,		--8
-    awful.layout.suit.spiral.dwindle,	--9
+    --awful.layout.suit.tile.left,	--3
+    --awful.layout.suit.tile.bottom,	--4
+    --awful.layout.suit.tile.top,		--5
+    --awful.layout.suit.fair,		--6
+    --awful.layout.suit.fair.horizontal,	--7
+    --awful.layout.suit.spiral,		--8
+    --awful.layout.suit.spiral.dwindle,	--9
     awful.layout.suit.max,		--10
-    awful.layout.suit.max.fullscreen,	--11
-    awful.layout.suit.magnifier		--12
+    --awful.layout.suit.max.fullscreen,	--11
+    --awful.layout.suit.magnifier		--12
 }
 -- }}}
 
 -- {{{ Tags
 -- Define a tag table which hold all screen tags.
  tags = {
-   names  = { "mail", "eclipse", "www", "skype", "rss", 6, 7, 8, 9 },
-   layout = { layouts[10], layouts[5], layouts[1], layouts[6], layouts[2],
-              layouts[1], layouts[1], layouts[1], layouts[1]
+   names  = { "mail", "eclipse", "www", "skype", "rss", "tile", 7, 8, "youtube" },
+   layout = { layouts[3], layouts[1], layouts[1], layouts[2], layouts[1],
+              layouts[2], layouts[1], layouts[1], layouts[2]
  }}
  for s = 1, screen.count() do
      -- Each screen has its own tag table.
@@ -90,8 +98,21 @@ myawesomemenu = {
    { "quit", awesome.quit }
 }
 
-mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-                                    { "open terminal", terminal }
+--"/home/will/Applications/eclipse/icon.xpm"
+--"/usr/share/git-cola/icons/git.svg"
+myapps = {
+   { "eclipse", "/home/will/Applications/eclipse/eclipse"},
+   { "git-cola", "git-cola -r /home/will/tr/" },
+   { "liferea", "liferea"},
+   { "chromium-dev", "chromium-dev"},
+   { "skype", "skype"},
+}
+
+
+mymainmenu = awful.menu({ items = { { "apps", myapps },
+				    { "awesome", myawesomemenu, beautiful.awesome_icon },
+                                    { "open terminal", terminal },
+				    { "lock screen", "xscreensaver-command -lock"}
                                   }
                         })
 
@@ -99,16 +120,196 @@ mylauncher = awful.widget.launcher({ image = image(beautiful.awesome_icon),
                                      menu = mymainmenu })
 -- }}}
 
+
 -- {{{ Wibox
--- Create a textclock widget
+
+
+function set_volume_image(vol_num, theText)
+	return cw.cairo_circle({ 
+			text=theText,
+			value=vol_num,
+			bold= true
+		}) 
+end
+
+
+ cardid  = 2
+ channel = "Speaker"
+ function volume (mode, widget)
+ 	if mode == "update" then
+              local fd = io.popen("amixer -c " .. cardid .. " -- sget " .. channel)
+              local status = fd:read("*all")
+              fd:close()
+ 		
+ 		local theVol = tonumber(string.match(status, "(%d?%d?%d)%%"))
+ 		status = string.match(status, "%[(o[^%]]*)%]")
+ 
+ 		if string.find(status, "on", 1, true) then
+ 			theText = "VOL"
+ 		else
+ 			theText = "MUTED"
+ 		end
+ 		widget.image = set_volume_image(theVol, theText)
+ 	elseif mode == "up" then
+ 		io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%+"):read("*all")
+ 		volume("update", widget)
+ 	elseif mode == "down" then
+ 		io.popen("amixer -q -c " .. cardid .. " sset " .. channel .. " 5%-"):read("*all")
+ 		volume("update", widget)
+ 	else
+ 		io.popen("amixer -c " .. cardid .. " sset " .. channel .. " toggle"):read("*all")
+ 		volume("update", widget)
+ 	end
+ end
+  
+ tb_volume = widget({ type = "imagebox", name = "tb_volume" })
+ tb_volume:buttons(awful.util.table.join(
+ 	awful.button({ }, 4, function () volume("up", tb_volume) end),
+ 	awful.button({ }, 5, function () volume("down", tb_volume) end),
+ 	awful.button({ }, 1, function () volume("mute", tb_volume) end)
+ ))
+ volume("update", tb_volume)
+ 
+tb_volume_timer = timer({timeout = 30})
+tb_volume_timer:add_signal("timeout", function()  volume("update", tb_volume)  end)
+tb_volume_timer:start()
+
+
+
+       
+       
+--]==]
+
+
+
+--{{{ FS DOUBLE HBAR
+local function set_double_hbar(val1, val2)
+	return cw.cairo_double_text({
+		width=60,
+		text1="D: " .. val1,  text2="U: " .. val2,
+	})
+end
+
+--}}}
+
+
  --  Network usage widget
+ 
  -- Initialize widget
- netwidget = widget({ type = "textbox" })
+ netwidget = widget({ type = "imagebox", name = "netwidget" })
  -- Register widget
- vicious.register(netwidget, vicious.widgets.net, '<span color="#CC9393">${eth0 down_kb}</span> <span color="#7F9F7F">${eth0 up_kb}</span>', 3)
-
-
+ netwidget.image = set_double_hbar(0,0);
+ 
+ vicious.register(netwidget, vicious.widgets.net,
+    function (widget, args)
+       widget.image = set_double_hbar(tonumber(args["{eth0 down_kb}"]), tonumber(args["{eth0 up_kb}"]))
+    end, 3)
+ 
 mytextclock = awful.widget.textclock({ align = "right" })
+require('calendar2')
+
+calendar2.addCalendarToWidget(mytextclock)
+
+--{{{ FS HOME VBAR WIDGET
+local function set_mem_hbar_widget()
+        local used = cw.active_ram()
+	return  cw.cairo_hbar({
+		width=20,
+		text="RAM: ", unit = "%",
+		value=used - used%0.1, bold=true,
+	
+	})
+end
+bars_mem1 = widget({ type = "imagebox", name = "bars_mem" })
+bars_mem1.image  = set_mem_hbar_widget()
+bars_mem1_timer = timer({timeout = 10})
+bars_mem1_timer:add_signal("timeout", function() bars_mem1.image = set_mem_hbar_widget()  end)
+bars_mem1_timer:start()
+    
+--}}}
+
+--{{{CPU GRAPH WIDGET
+--define an empty table to stock the values for the graph and call it with array=
+
+local last_cpu=0
+read_cpu_timer = timer({timeout = 1})
+read_cpu_timer:add_signal("timeout", function() last_cpu=cw.active_cpu(1) end)
+read_cpu_timer:start()	
+
+cpu_table={}
+local function set_graph_image()
+	return cw.cairo_graph({text="cpu", 
+			value=last_cpu, 
+			array=cpu_table,
+			nb_values=30, 
+			width=100,  
+			autoscale=true,
+			alarm=700,
+			})
+end
+graph_cpu = widget({ type = "imagebox", name = "graph_cpu" })
+graph_cpu_t = awful.tooltip({ objects = { graph_cpu },})
+graph_cpu.image = set_graph_image()
+graph_cpu_timer = timer({timeout = 1})
+graph_cpu_timer:add_signal("timeout", 
+        function() 
+                graph_cpu_t:set_text("CPU: " .. last_cpu .. "%\nTemp: " 
+                        .. cw.active_cpu_temp("/sys/devices/platform/coretemp.0/temp1_input") 
+                        .. " °C")
+                graph_cpu.image = set_graph_image() 
+        end)
+graph_cpu_timer:start()	
+
+
+
+--}}}
+
+
+-- Initialize widget
+cpuwidget = widget({ type = "textbox" })
+-- Register widget
+vicious.register(cpuwidget, vicious.widgets.cpu, "CPU $1%")
+
+
+weatherwidget = widget({ type = "textbox" })
+weather_t = awful.tooltip({ objects = { weatherwidget },})
+
+vicious.register(weatherwidget, vicious.widgets.weather,
+                function (widget, args)
+                    weather_t:set_text("City: " .. args["{city}"] .."\nWind: " .. args["{windkmh}"] .. "km/h " .. args["{wind}"] .. "\nSky: " .. args["{sky}"] 
+.. "\nHumidity: " .. args["{humid}"] .. "%")
+                    return args["{tempc}"] .. "C"
+                end, 1800, "YMHB")
+
+ separator = widget({ type = "textbox" })
+ separator.text  = " :: "
+
+function load_prog(cmd, tag)
+   awful.tag.viewonly(tags[1][tag])
+   awful.util.spawn(cmd)
+end
+
+mygmail = widget({ type = "textbox" })
+gmail_t = awful.tooltip({ objects = { mygmail },})
+
+mygmailimg = widget({ type = "imagebox" })
+mygmailimg.image = image("/home/will/.config/awesome/gmail.png")
+
+
+mygmailimg:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () load_prog("gmail",1) end)
+))
+
+mygmail:buttons(awful.util.table.join(
+    awful.button({ }, 1, function () load_prog("gmail" , 1) end)
+))
+
+vicious.register(mygmail, vicious.widgets.gmail,
+                function (widget, args)
+                    gmail_t:set_text(args["{subject}"])
+                    gmail_t:add_to_object(mygmailimg)
+                    return args["{count}"]
+                 end, 30) 
 
 -- Create a systray
 mysystray = widget({ type = "systray" })
@@ -182,17 +383,23 @@ for s = 1, screen.count() do
     -- Add widgets to the wibox - order matters
     mywibox[s].widgets = {
         {
-            mylauncher,
+            mylauncher,	
             mytaglist[s],
             mypromptbox[s],
             layout = awful.widget.layout.horizontal.leftright
         },
         mylayoutbox[s],
         mytextclock,
-	netwidget,
+	separator, netwidget, separator,
+	spearator, bars_mem1, 
+	separator, graph_cpu,
+	separator, weatherwidget,
+	separator, tb_volume,
+	separator, mygmail, mygmailimg,
         s == 1 and mysystray or nil,
         mytasklist[s],
         layout = awful.widget.layout.horizontal.rightleft
+        
     }
 end
 -- }}}
@@ -237,6 +444,15 @@ globalkeys = awful.util.table.join(
             end
         end),
 
+
+    -- Volume
+        awful.key({ }, "XF86AudioRaiseVolume", function ()
+                volume("up", tb_volume) end),
+        awful.key({ }, "XF86AudioLowerVolume", function ()
+                volume("down", tb_volume) end),
+        awful.key({ }, "XF86AudioMute", function ()
+                volume("mute", tb_volume) end),
+       
     -- Standard program
     awful.key({ modkey,           }, "Return", function () awful.util.spawn(terminal) end),
     awful.key({ modkey, "Control" }, "r", awesome.restart),
@@ -350,8 +566,26 @@ awful.rules.rules = {
     { rule = { class = "gimp" },
       properties = { floating = true } },
     -- Set Firefox to always map on tags number 2 of screen 1.
-    -- { rule = { class = "Firefox" },
-    --   properties = { tag = tags[1][2] } },
+     { rule = { class = "Firefox" },
+       properties = { tag = tags[1][1] } },
+
+     { rule = { class = "Liferea" },
+       properties = { tag = tags[1][5] } },
+
+     { rule = { class = "Skype" },
+       properties = { tag = tags[1][4] } },
+
+     { rule = { class = "Eclipse" },
+       properties = { tag = tags[1][2] } },
+
+       
+     { rule = { class = "chromium-dev" },
+       properties = { tag = tags[1][3] } },
+              
+     { rule = { name = " - YouTube" },
+       properties = { tag = tags[1][9], floating = true } },
+       
+     
 }
 -- }}}
 
@@ -385,3 +619,28 @@ end)
 client.add_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.add_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}
+
+
+       
+       
+function run_once(prg,arg_string,pname,screen)
+    if not prg then
+        do return nil end
+    end
+
+    if not pname then
+       pname = prg
+    end
+
+    if not arg_string then 
+        awful.util.spawn_with_shell("pgrep -f -u $USER -x '" .. pname .. "' || (" .. prg .. ")",screen)
+    else
+        awful.util.spawn_with_shell("pgrep -f -u $USER -x '" .. pname .. "' || (" .. prg .. " " .. arg_string .. ")",screen)
+    end
+end
+
+
+run_once("xscreensaver","-no-splash")
+run_once("liferea")
+run_once("skype")
+run_once("parcellite")

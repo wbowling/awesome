@@ -8,8 +8,23 @@
 
 -- {{{ Main
 theme = {}
-theme.wallpaper_cmd = { "awsetbg /home/will/.config/awesome/themes/mine/zenburn-background.png" }
+theme.wallpaper_cmd = { "randwall" }
 -- }}}
+
+theme.theme_dir = "/home/will/.config/awesome/themes/mine/"
+
+
+theme.panel_height=32
+
+theme.black_bg=false
+
+theme.panel_font="clean"
+theme.panel_italic=false
+theme.panel_bold=true
+theme.panel_font_size=10
+
+theme.panel_thickness = 3
+
 
 -- {{{ Styles
 theme.font      = "sans 10"
@@ -22,6 +37,14 @@ theme.bg_normal = "#3F3F3F"
 theme.bg_focus  = "#1E2320"
 theme.bg_urgent = "#3F3F3F"
 -- }}}
+
+
+
+theme.colour_bg={{0,0x3F3F3F,1}, {0.5,0x4F4F4F,1} , {1,0x3F3F3F,0}}
+theme.colour_fg={{0,0x666666,1}, {0.5,0xEAEAEA,1} , {1,0x666666,1}}
+theme.colour_alarm={{0,0xFF8383,1},{0.5,0xFF0000,1},{1,0xFF8385,1}}
+
+
 
 -- {{{ Borders
 theme.border_width  = "2"
@@ -78,8 +101,8 @@ theme.taglist_squares_unsel = "/home/will/.config/awesome/themes/mine/taglist/sq
 
 -- {{{ Misc
 theme.awesome_icon           = "/home/will/.config/awesome/themes/mine/awesome-icon.png"
-theme.menu_submenu_icon      = "/usr/share/awesome/themes/default/submenu.png"
-theme.tasklist_floating_icon = "/usr/share/awesome/themes/default/tasklist/floatingw.png"
+theme.menu_submenu_icon      = "/home/will/.config/awesome/themes/mine/submenu.png"
+theme.tasklist_floating_icon = "/home/will/.config/awesome/themes/mine/tasklist/floatingw.png"
 -- }}}
 
 -- {{{ Layout
