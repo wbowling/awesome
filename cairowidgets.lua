@@ -803,9 +803,11 @@ end
 -- @param autoscale : autocale the y axis
 function cairo_graph(args)
 	local text = args.text or ""
+	
 	local value = args.value or 0
 	local nb_values = args.nb_values or 30
 	local array = args.array or {}
+	
 	local thickness = args.thickness or beautiful.panel_thickness or 2
 	local font = args.font or beautiful.panel_font or "FreeSans"
 	local italic = has_italic_text(args.italic)
@@ -861,7 +863,7 @@ function cairo_graph(args)
 		maxgraph=math.max(maxgraph, array[i])
 	end
 	array[nb_values]= value
-
+    
 	local maxgraph=math.max(maxgraph, value)
 	
 	if autoscale then maxi = maxgraph end
@@ -872,6 +874,130 @@ function cairo_graph(args)
 	end
 	for i=1,nb_values do 
 		cr:line_to(width*i/nb_values,-(array[i]/maxi)*height)
+	end
+	cr:stroke()
+
+	return image.argb32(w, h, cs:get_data())	
+end
+
+
+------------------------------------------------------------ cairo_graph
+--IMPORTANT : define an empty table when rc.lua starts and call it with param array
+------------------------------------------------------------------------
+-- @param text : text to display
+-- @param value : last value to display
+-- @param nb_values : number of values in array
+-- @param array : table containing the values
+-- @param thickness : thickness of the graph
+-- @param width : width of the bars
+-- @param font : font name
+-- @param italic : display text with italic slant (true/false)
+-- @param bold : display text with bold weight (true/false)
+-- @param font_size : font size
+-- @param colour_bg : colour of background
+-- @param colour_fg : colour of foreground
+-- @param colour_alarm : colour of alarm
+-- @param black_bg : apply black bg before background colour (true/false)
+-- @param maxi : maximum value for y axis
+-- @param autoscale : autocale the y axis
+function cairo_graph_double(args)
+	local text = args.text or ""
+	
+	local value = args.value or 0
+	local nb_values = args.nb_values or 30
+	local array = args.array or {}
+	
+	local value2 = args.value2 or 0
+	local array2 = args.array2 or {}
+	
+	local thickness = args.thickness or beautiful.panel_thickness or 2
+	local font = args.font or beautiful.panel_font or "FreeSans"
+	local italic = has_italic_text(args.italic)
+	local bold = has_bold_text(args.bold)	
+	local font_size = args.font_size or beautiful.panel_font_size or "12"
+	local colour_bg = args.colour_bg or beautiful.colour_bg or {{0,0x000000,1}}
+	local colour_fg = args.colour_fg or beautiful.colour_fg or {{0,0xFFFFFF,1}}
+	local colour_fg2 = args.colour_fg2 or beautiful.colour_fg2 or {{0,0xFFFFFF,1}}
+	local colour_text = args.colour_text or beautiful.colour_fg or {{0,0xFFFFFF,1}}
+	local colour_alarm = args.colour_alarm or beautiful.colour_alarm or {{0,0xFF0000,1}}	
+	local black_bg = has_black_bg(args.black_bg)
+	local alarm = args.alarm or value +1
+	local yy = h*.9
+	local xx = thickness
+	local w= args.width or 200
+	local maxi = args.maxi or 100
+	local autoscale = args.autoscale or false
+	local first_call =false
+	if #array==0 then
+		for x=1, nb_values do array[x]=0; array2[x]=0 end
+		first_call = true
+	end
+	local black_bg = has_black_bg(args.black_bg)
+	local cs,cr=init_image(w,h,black_bg,colour_bg)
+
+
+    cr:set_source(linear_pattern(colour_text))
+	
+		
+	if text ~= nil then
+		local font_slant, font_weight = init_font(italic, bold)
+		cr:select_font_face(font,font_slant,font_weight)
+		cr:set_font_size(font_size)
+		local te=cr:text_extents(text)
+		cr:save()
+		cr:translate(-te["y_bearing"]+2,(h+te["x_advance"]+te["x_bearing"])/2)
+		cr:rotate(-math.pi/2)
+		cr:show_text(text)
+		cr:stroke()	
+		cr:restore()
+		xx= te["height"]-te["y_bearing"]
+	end	
+
+    if value>alarm then 
+		cr:set_source(linear_pattern(colour_alarm)) 
+	else
+		cr:set_source(linear_pattern(colour_fg))
+	end
+	
+	local width=w-xx-5
+	local height=h*.8
+
+	cr:translate(xx,yy)
+	--cr:move_to(0,-array[1]*height/100)
+	cr:set_line_width(thickness)
+	local maxgraph=0
+	for i=2,nb_values do 
+		array[i-1]=array[i]
+		array2[i-1]=array2[i]
+		maxgraph=math.max(maxgraph, array[i])
+		maxgraph=math.max(maxgraph, array2[i])
+	end
+	array[nb_values]= value
+    array2[nb_values]= value2
+    
+	local maxgraph=math.max(maxgraph, value)
+	maxgraph=math.max(maxgraph, value2)
+	
+	if autoscale then maxi = maxgraph end
+	if first_call then 
+		cr:move_to(width/nb_values,0)
+		cr:line_to(width,0)
+		cr:stroke()
+	end
+	for i=1,nb_values do 
+		cr:line_to(width*i/nb_values,-(array[i]/maxi)*height)
+	end
+	cr:stroke()
+	
+	cr:set_source(linear_pattern(colour_fg2)) 
+	if first_call then 
+		cr:move_to(width/nb_values,0)
+		cr:line_to(width,0)
+		cr:stroke()
+	end
+	cr:move_to(width/nb_values,0)
+	for i=1,nb_values do 
+		cr:line_to(width*i/nb_values,-(array2[i]/maxi)*height)
 	end
 	cr:stroke()
 

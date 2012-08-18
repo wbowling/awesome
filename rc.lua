@@ -41,7 +41,7 @@ end
 -- {{{ Variable definitions
 -- Themes define colours, icons, and wallpapers
 beautiful.init("/home/will/.config/awesome/themes/mine/theme.lua")
-
+ 
 require ("icons")
 local cw = require ("cairowidgets")
 local pop = require ("popup")
@@ -182,6 +182,22 @@ tb_volume_timer:start()
 
 
 
+net_table1={}
+net_table2={}
+local function set_net_graph(val1, val2)
+	return cw.cairo_graph_double({text="net", 
+			value=val1, 
+			array=net_table1,
+			value2=val2, 
+			array2=net_table2,
+			nb_values=30, 
+			width=100,  
+			autoscale=true,
+			colour_fg={{0,0x339900,1}},
+			colour_fg2={{0,0x990000,1}},
+			})
+end
+
 --{{{ FS DOUBLE HBAR
 local function set_double_hbar(val1, val2)
 	return cw.cairo_double_text({
@@ -198,11 +214,15 @@ end
  -- Initialize widget
  netwidget = widget({ type = "imagebox", name = "netwidget" })
  -- Register widget
- netwidget.image = set_double_hbar(0,0);
+ -- netwidget.image = set_double_hbar(0,0);
+ netwidget.image = set_net_graph(0,0);
+ netwidget_t = awful.tooltip({ objects = { netwidget },})
  
  vicious.register(netwidget, vicious.widgets.net,
     function (widget, args)
-       widget.image = set_double_hbar(tonumber(args["{eth0 down_kb}"]), tonumber(args["{eth0 up_kb}"]))
+         netwidget_t:set_text("Down: " .. args["{eth0 down_kb}"] .. "kbps\nUp: " .. args["{eth0 up_kb}"] .. "kbps");
+       --widget.image = set_double_hbar(tonumber(args["{eth0 down_kb}"]), tonumber(args["{eth0 up_kb}"]))
+       widget.image = set_net_graph(tonumber(args["{eth0 down_kb}"]), tonumber(args["{eth0 up_kb}"]))
     end, 3)
  
 mytextclock = awful.widget.textclock({ align = "right" })
@@ -282,7 +302,7 @@ vicious.register(weatherwidget, vicious.widgets.weather,
                 end, 1800, "YMHB")
 
  separator = widget({ type = "textbox" })
- separator.text  = " :: "
+ separator.text  = " | "
 
 function load_prog(cmd, tag)
    awful.tag.viewonly(tags[1][tag])
@@ -570,10 +590,10 @@ awful.rules.rules = {
        properties = { tag = tags[1][1] } },
 
      { rule = { class = "Liferea" },
-       properties = { tag = tags[1][5] } },
+       properties = { tag = tags[1][5], switchtotag = tags[1][5]} },
 
      { rule = { class = "Skype" },
-       properties = { tag = tags[1][4] } },
+       properties = { tag = tags[1][4], switchtotag = tags[1][4] } },
 
      { rule = { class = "Eclipse" },
        properties = { tag = tags[1][2] } },
@@ -584,6 +604,9 @@ awful.rules.rules = {
               
      { rule = { name = " - YouTube" },
        properties = { tag = tags[1][9], floating = true } },
+       
+       {rule = {class = "URxvt"}, 
+        properties = {opacity = 0.8} }
        
      
 }
@@ -638,8 +661,8 @@ function run_once(prg,arg_string,pname,screen)
         awful.util.spawn_with_shell("pgrep -f -u $USER -x '" .. pname .. "' || (" .. prg .. " " .. arg_string .. ")",screen)
     end
 end
-
-
+--run_once("cairo-compmgr")
+run_once("xcompmgr")
 run_once("xscreensaver","-no-splash")
 run_once("liferea")
 run_once("skype")
